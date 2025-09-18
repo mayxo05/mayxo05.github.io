@@ -1,36 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My TU Dublin Timetable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-    .iframe-container {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      border: none;
-    }
-    .iframe-container iframe {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>My Calendar Schedule</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f8f9fa;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .dropdown {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 15px;
+    }
+    .day {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .day h3 {
+      margin-top: 0;
+      text-align: center;
+      background: #0077cc;
+      color: white;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    .event {
+      margin: 8px 0;
+      padding: 5px;
+      background: #e6f2ff;
+      border-left: 4px solid #0077cc;
+    }
+  </style>
 </head>
 <body>
-  <div class="iframe-container">
-    <iframe
-      src="https://timetables.tudublin.ie/timetables?date=2025-09-15&view=week&timetableTypeSelected=241e4d36-93f2-4938-9e15-d4536fe3b2eb&searchText=Tu877&selections=241e4d36-93f2-4938-9e15-d4536fe3b2eb__654861e8-45c4-f352-e2e8-44dc8a9d3f5f"
-      allowfullscreen>
-    </iframe>
-  </div>
+
+  <header>
+    <h1>My Weekly Schedule</h1>
+  </header>
+
+  <div class="dropdown">
+    <label for="programme">Programmes of Study: </label>
+    <select id="programme">
+      <option>Loading programmes...</option>
+    </select>
+  </div>
+
+  <div class="calendar">
+    <div class="day"><h3>Monday</h3><div class="event">College 9 AM - 3 PM</div></div>
+    <div class="day"><h3>Tuesday</h3><div class="event">Driving 9 - 11 AM</div><div class="event">Study 12 - 3 PM</div><div class="event">Work 5 - 10 PM</div></div>
+    <div class="day"><h3>Wednesday</h3><div class="event">College 10 AM - 5 PM</div><div class="event">Meet boyfriend</div></div>
+    <div class="day"><h3>Thursday</h3><div class="event">College 11 AM - 5 PM</div><div class="event">Study 5 - 7 PM / Go out</div></div>
+    <div class="day"><h3>Friday</h3><div class="event">Lab 2 - 4 PM / Work 5 - 10:30 PM</div></div>
+    <div class="day"><h3>Saturday</h3><div class="event">Groceries 12 PM</div><div class="event">Work 4 - 9:30 PM</div></div>
+    <div class="day"><h3>Sunday</h3><div class="event">Free day / Work 5 - 10:30 PM</div></div>
+  </div>
+
+  <script>
+    async function loadProgrammes() {
+      const dropdown = document.getElementById('programme');
+      try {
+        const response = await fetch("https://timetables.tudublin.ie/programmes", {
+          mode: 'cors'
+        });
+        if (!response.ok) throw new Error("Network error");
+        const html = await response.text();
+        
+        // Create a temporary DOM parser to extract the <option> tags
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const options = doc.querySelectorAll("select#programme option");
+
+        dropdown.innerHTML = ""; // clear "Loading..."
+        options.forEach(opt => {
+          const newOpt = document.createElement("option");
+          newOpt.value = opt.value;
+          newOpt.textContent = opt.textContent;
+          dropdown.appendChild(newOpt);
+        });
+
+      } catch (err) {
+        dropdown.innerHTML = "<option>Failed to load programmes</option>";
+        console.error(err);
+      }
+    }
+
+    loadProgrammes();
+  </script>
+
 </body>
 </html>
