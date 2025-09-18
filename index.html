@@ -1,46 +1,92 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2761
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red9\green79\blue209;}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c40784\c85490;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\deftab720
-\pard\pardeftab720\partightenfactor0
+// src/App.tsx
+import { useState, useEffect } from "react";
 
-\f0\fs24 \cf0 \expnd0\expndtw0\kerning0
-<!DOCTYPE html>\
-<html lang="en">\
-<head>\
-\'a0 <meta charset="UTF-8">\
-\'a0 <title>My TU Dublin Timetable</title>\
-\'a0 <meta name="viewport" content="width=device-width, initial-scale=1">\
-\'a0 <style>\
-\'a0 \'a0 body, html \{\
-\'a0 \'a0 \'a0 margin: 0;\
-\'a0 \'a0 \'a0 padding: 0;\
-\'a0 \'a0 \'a0 height: 100%;\
-\'a0 \'a0 \}\
-\'a0 \'a0 .iframe-container \{\
-\'a0 \'a0 \'a0 position: relative;\
-\'a0 \'a0 \'a0 width: 100%;\
-\'a0 \'a0 \'a0 height: 100vh;\
-\'a0 \'a0 \'a0 border: none;\
-\'a0 \'a0 \}\
-\'a0 \'a0 .iframe-container iframe \{\
-\'a0 \'a0 \'a0 position: absolute;\
-\'a0 \'a0 \'a0 top: 0; left: 0;\
-\'a0 \'a0 \'a0 width: 100%;\
-\'a0 \'a0 \'a0 height: 100%;\
-\'a0 \'a0 \'a0 border: none;\
-\'a0 \'a0 \}\
-\'a0 </style>\
-</head>\
-<body>\
-\'a0 <div class="iframe-container">\
-\'a0 \'a0 <iframe\'a0\
-\'a0 \'a0 \'a0 src="{\field{\*\fldinst{HYPERLINK "https://timetables.tudublin.ie/timetables?date=2025-09-15&view=week&timetableTypeSelected=241e4d36-93f2-4938-9e15-d4536fe3b2eb&searchText=Tu877&selections=241e4d36-93f2-4938-9e15-d4536fe3b2eb__654861e8-45c4-f352-e2e8-44dc8a9d3f5f"}}{\fldrslt \cf3 \ul \ulc3 https://timetables.tudublin.ie/timetables?date=2025-09-15&view=week&timetableTypeSelected=241e4d36-93f2-4938-9e15-d4536fe3b2eb&searchText=Tu877&selections=241e4d36-93f2-4938-9e15-d4536fe3b2eb__654861e8-45c4-f352-e2e8-44dc8a9d3f5f}}"\'a0\
-\'a0 \'a0 \'a0 allowfullscreen\
-\'a0 \'a0 \'a0 >\
-\'a0 \'a0 </iframe>\
-\'a0 </div>\
-</body>\
-</html>}
+interface TimetableEvent {
+  moduleName: string;
+  room: string;
+  day: string;
+  start: string;
+  end: string;
+}
+
+export default function App() {
+  const [programmes, setProgrammes] = useState<{ id: string; name: string }[]>([]);
+  const [selectedProgramme, setSelectedProgramme] = useState("");
+  const [events, setEvents] = useState<TimetableEvent[]>([]);
+
+  // Load programmes (Programmes of Study dropdown)
+  useEffect(() => {
+    fetch("https://timetables.tudublin.ie/api/programmesofstudy") // endpoint TU Dublin uses
+      .then((res) => res.json())
+      .then((data) => {
+        setProgrammes(data);
+      })
+      .catch((err) => console.error("Failed to fetch programmes", err));
+  }, []);
+
+  // Load timetable events when programme changes
+  useEffect(() => {
+    if (!selectedProgramme) return;
+    fetch(
+      `https://timetables.tudublin.ie/api/timetables?searchText=${selectedProgramme}&view=week`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        // Map API data to our format
+        const mapped = data.events.map((e: any) => ({
+          moduleName: e.module,
+          room: e.room,
+          day: e.day,
+          start: e.startTime,
+          end: e.endTime,
+        }));
+        setEvents(mapped);
+      })
+      .catch((err) => console.error("Failed to fetch timetable", err));
+  }, [selectedProgramme]);
+
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">TU Dublin Timetable Viewer</h1>
+
+      <select
+        className="border p-2 rounded mb-6"
+        onChange={(e) => setSelectedProgramme(e.target.value)}
+        value={selectedProgramme}
+      >
+        <option value="">Select Programme of Study</option>
+        {programmes.map((p) => (
+          <option key={p.id} value={p.name}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+
+      <div className="grid grid-cols-5 gap-4">
+        {days.map((day) => (
+          <div key={day} className="border rounded p-2">
+            <h2 className="font-semibold text-lg mb-2">{day}</h2>
+            <ul className="space-y-2">
+              {events
+                .filter((ev) => ev.day === day)
+                .map((ev, i) => (
+                  <li
+                    key={i}
+                    className="p-2 rounded bg-blue-100 shadow-sm text-sm"
+                  >
+                    <div className="font-medium">{ev.moduleName}</div>
+                    <div>
+                      {ev.start} - {ev.end}
+                    </div>
+                    <div className="text-gray-600">{ev.room}</div>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
