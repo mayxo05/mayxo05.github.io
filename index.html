@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TU Dublin Timetable — Quick App</title>
+  <meta name="description" content="Quick app to open the TU Dublin timetable page (agenda view)." />
+  <meta name="theme-color" content="#0b57a4" />
+  <style>
+    :root{--accent:#0b57a4;--bg:#f6f9fc;--card:#ffffff}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:#111}
+    header{background:linear-gradient(90deg,var(--accent),#0060c0);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px}
+    header h1{margin:0;font-size:1.05rem}
+    .controls{display:flex;gap:8px;align-items:center;margin-left:auto}
+    .controls input[type=date],.controls select,.controls input[type=text]{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#fff}
+    .controls button{background:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .container{padding:12px;height:calc(100vh - 68px);display:flex;flex-direction:column}
+    .card{background:var(--card);border-radius:12px;box-shadow:0 6px 18px rgba(10,20,30,0.06);flex:1;overflow:hidden;display:flex;flex-direction:column}
+    .toolbar{padding:10px 12px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;gap:8px;align-items:center}
+    .toolbar .hint{color:#555;font-size:0.9rem}
+    .iframe-wrap{flex:1;min-height:0}
+    iframe{width:100%;height:100%;border:0}
+    .small{font-size:0.9rem}
+    @media (max-width:640px){
+      header{padding:10px}
+      .controls{flex-direction:row;gap:6px}
+      .controls input[type=date]{padding:6px}
+      .controls input[type=text]{display:none}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <rect x="2" y="4" width="20" height="16" rx="2" fill="white"/>
+      <path d="M7 9h10M7 13h6" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>TU Dublin Timetable</h1>
+
+    <div class="controls">
+      <label class="small" for="datePicker" style="color:rgba(255,255,255,0.95)">Date:</label>
+      <input id="datePicker" type="date" value="2025-09-01" />
+
+      <label class="small" for="viewSelect" style="color:rgba(255,255,255,0.95)">View:</label>
+      <select id="viewSelect">
+        <option value="agenda">Agenda</option>
+        <option value="week">Week</option>
+        <option value="day">Day</option>
+      </select>
+
+      <input id="searchText" type="text" placeholder="Search (e.g. TU877)" style="min-width:140px" />
+
+      <button id="loadBtn" title="Open timetable">Open</button>
+      <button id="openTabBtn" title="Open timetable in new tab">↗</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <div class="toolbar">
+        <div class="hint">This app embeds the TU Dublin timetable. Use the controls to change date, view, or search. If the site blocks embedding, use the new-tab button.</div>
+      </div>
+
+      <div class="iframe-wrap">
+        <iframe id="ttFrame" src="https://timetables.tudublin.ie/timetables?date=2025-09-01&view=agenda" title="TU Dublin Timetable" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function(){
+      const datePicker = document.getElementById('datePicker');
+      const viewSelect = document.getElementById('viewSelect');
+      const searchText = document.getElementById('searchText');
+      const loadBtn = document.getElementById('loadBtn');
+      const openTabBtn = document.getElementById('openTabBtn');
+      const frame = document.getElementById('ttFrame');
+
+      function formatDateForUrl(d){
+        // date input already gives yyyy-mm-dd which matches the site param
+        return d;
+      }
+
+      function buildUrl(){
+        const date = formatDateForUrl(datePicker.value || '2025-09-01');
+        const view = viewSelect.value || 'agenda';
+        const search = encodeURIComponent((searchText.value||'').trim());
+        let base = 'https://timetables.tudublin.ie/timetables';
+        let url = base + '?date=' + date + '&view=' + view;
+        if(search) url += '&searchText=' + search;
+        return url;
+      }
+
+      loadBtn.addEventListener('click', ()=>{
+        const url = buildUrl();
+        frame.src = url;
+      });
+
+      openTabBtn.addEventListener('click', ()=>{
+        const url = buildUrl();
+        window.open(url, '_blank');
+      });
+
+      // Allow pressing Enter in search box to load
+      searchText.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') loadBtn.click(); });
+
+      // quick load on first paint
+      window.addEventListener('load', ()=>{ /* nothing extra */ });
+
+      // Note about embedding: some sites set headers (X-Frame-Options / CSP) preventing embedding.
+      // If the iframe remains blank or shows an error, open in new tab using the ↗ button.
+
+    })();
+  </script>
+
+</body>
+</html>
