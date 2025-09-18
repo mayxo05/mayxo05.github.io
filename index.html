@@ -1,0 +1,151 @@
+import { useState, useEffect } from "react";
+
+interface Event {
+  title: string;
+  day: string;
+  start: string;
+  end: string;
+  room: string;
+}
+
+// A sample list of programme codes/names; replace with real ones
+const programmes = [
+  { code: "TU676", name: "Computer Science" },
+  { code: "TU805", name: "Engineering" },
+  { code: "TU601", name: "Business Studies" },
+];
+
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+function parseTimetableHTML(html: string): Event[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const events: Event[] = [];
+
+  // Example selector logic — this depends heavily on how TU Dublin structures their HTML
+  // You’ll need to adjust selectors based on actual structure
+
+  // Suppose each event is in a table row <tr class="timetable-row"> or similar
+  doc.querySelectorAll("tr.timetable-row").forEach((row) => {
+    try {
+      // Example: day is in a cell with class "day"
+      const dayCell = row.querySelector("td.day");
+      const timeCell = row.querySelector("td.time");
+      const moduleCell = row.querySelector("td.module");
+      const roomCell = row.querySelector("td.room");
+
+      if (!dayCell || !timeCell || !moduleCell) {
+        return; // skip if missing
+      }
+
+      const dayText = dayCell.textContent?.trim() || "";
+      const timeText = timeCell.textContent?.trim() || "";  // e.g. "09:00-10:30"
+      const moduleText = moduleCell.textContent?.trim() || "";
+      const roomText = roomCell?.textContent?.trim() || "";
+
+      // Split timeText into start/end
+      const [start, end] = timeText.split(/[-–—]/).map(s => s.trim());
+
+      // Only accept if day is one of the standard weekdays
+      if (days.includes(dayText)) {
+        events.push({
+          title: moduleText,
+          day: dayText,
+          start,
+          end: end || "",
+          room: roomText,
+        });
+      }
+    } catch (err) {
+      console.error("Error parsing row", err);
+    }
+  });
+
+  return events;
+}
+
+export default function App() {
+  const [selectedProgramme, setSelectedProgramme] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTimetable = async (code: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const date = new Date().toISOString().split("T")[0];  // e.g. “2025-09-18”
+      const url = `https://timetables.tudublin.ie/timetables?date=${date}&searchText=${code}&view=week`;
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Network response was not ok: ${res.status}`);
+      }
+      const html = await res.text();
+
+      const parsedEvents = parseTimetableHTML(html);
+      setEvents(parsedEvents);
+    } catch (err: any) {
+      console.error("Failed to fetch or parse timetable:", err);
+      setError(err.message || "Unknown error");
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedProgramme) {
+      fetchTimetable(selectedProgramme);
+    }
+  }, [selectedProgramme]);
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">TU Dublin Timetable Viewer</h1>
+
+      <select
+        className="border p-2 rounded mb-6"
+        value={selectedProgramme}
+        onChange={(e) => {
+          const code = e.target.value;
+          setSelectedProgramme(code);
+        }}
+      >
+        <option value="">Select Programme of Study</option>
+        {programmes.map((p) => (
+          <option key={p.code} value={p.code}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+
+      {loading && <p>Loading timetable...</p>}
+      {error && <p className="text-red-500">Error: {error}</p>}
+
+      <div className="grid grid-cols-5 gap-4">
+        {days.map((day) => (
+          <div key={day} className="border rounded p-2">
+            <h2 className="font-semibold mb-2">{day}</h2>
+            <ul className="space-y-2">
+              {events
+                .filter((ev) => ev.day === day)
+                .map((ev, i) => (
+                  <li
+                    key={i}
+                    className="p-2 bg-blue-100 rounded shadow-sm text-sm"
+                  >
+                    <div className="font-medium">{ev.title}</div>
+                    <div>
+                      {ev.start} - {ev.end}
+                    </div>
+                    <div className="text-gray-600">{ev.room}</div>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
