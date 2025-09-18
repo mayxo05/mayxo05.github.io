@@ -1,105 +1,127 @@
-Python 3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)] on darwin
-Type "help", "copyright", "credits" or "license()" for more information.
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My Calendar Schedule</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f8f9fa;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .dropdown {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 15px;
-    }
-    .day {
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .day h3 {
-      margin-top: 0;
-      text-align: center;
-      background: #0077cc;
-      color: white;
-      padding: 5px;
-      border-radius: 5px;
-    }
-    .event {
-      margin: 8px 0;
-      padding: 5px;
-      background: #e6f2ff;
-      border-left: 4px solid #0077cc;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>TU Dublin Timetable App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: #004080;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.3em;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      letter-spacing: 1px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      background: #e4e8ef;
+      padding: 8px 0;
+      flex-wrap: wrap;
+    }
+    .controls label {
+      font-weight: 500;
+      color: #004080;
+    }
+    .controls select, .controls input[type="date"] {
+      font-size: 1em;
+      padding: 4px 8px;
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      outline: none;
+    }
+    .iframe-container {
+      flex: 1;
+      width: 100vw;
+      height: 100%;
+      overflow: hidden;
+      background: #d2e2f3;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+    @media (max-width: 600px) {
+      header { font-size: 1em; padding: 10px; }
+      .controls { font-size: 0.9em; }
+    }
+  </style>
 </head>
 <body>
+  <header>
+    📅 TU Dublin Timetable App
+  </header>
+  <div class="controls">
+    <label for="programme">Programme:</label>
+    <select id="programme">
+      <option value="Tu877">TU877 (Computer Science)</option>
+      <option value="Tu868">TU868 (Business)</option>
+      <option value="Tu123">TU123 (Engineering)</option>
+      <!-- Add more as needed -->
+    </select>
+    <label for="date">Week Starting:</label>
+    <input type="date" id="date">
+    <label for="view">View:</label>
+    <select id="view">
+      <option value="week">Week</option>
+      <option value="day">Day</option>
+    </select>
+  </div>
+  <div class="iframe-container">
+    <iframe id="timetableFrame"></iframe>
+  </div>
+  <script>
+    // Map your programme codes to their unique selection string (replace with correct values!)
+    const programmeMap = {
+      'Tu877': '241e4d36-93f2-4938-9e15-d4536fe3b2eb__654861e8-45c4-f352-e2e8-44dc8a9d3f5f',
+      'Tu868': '241e4d36-93f2-4938-9e15-d4536fe3b2eb__1f1e3f3e-45c4-f352-e2e8-44dc8a9d3f5f', // example
+      'Tu123': '241e4d36-93f2-4938-9e15-d4536fe3b2eb__abcd1234-45c4-f352-e2e8-44dc8a9d3f5f', // example
+      // Add more as needed
+    };
 
-  <header>
-    <h1>My Weekly Schedule</h1>
-  </header>
+    // Set default date to today or the nearest Monday
+    function getDefaultMonday() {
+      // Get today's date
+      const today = new Date();
+      // Get day of week (0 = Sunday, 1 = Monday, etc.)
+      const day = today.getDay();
+      // Calculate the date of Monday this week
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+      const monday = new Date(today.setDate(diff));
+      return monday.toISOString().split('T')[0]; // YYYY-MM-DD
+    }
+    document.getElementById('date').value = getDefaultMonday();
 
-  <div class="dropdown">
-    <label for="programme">Programmes of Study: </label>
-    <select id="programme">
-      <option>Loading programmes...</option>
-    </select>
-  </div>
-
-  <div class="calendar">
-    <div class="day"><h3>Monday</h3><div class="event">College 9 AM - 3 PM</div></div>
-    <div class="day"><h3>Tuesday</h3><div class="event">Driving 9 - 11 AM</div><div class="event">Study 12 - 3 PM</div><div class="event">Work 5 - 10 PM</div></div>
-    <div class="day"><h3>Wednesday</h3><div class="event">College 10 AM - 5 PM</div><div class="event">Meet boyfriend</div></div>
-    <div class="day"><h3>Thursday</h3><div class="event">College 11 AM - 5 PM</div><div class="event">Study 5 - 7 PM / Go out</div></div>
-    <div class="day"><h3>Friday</h3><div class="event">Lab 2 - 4 PM / Work 5 - 10:30 PM</div></div>
-    <div class="day"><h3>Saturday</h3><div class="event">Groceries 12 PM</div><div class="event">Work 4 - 9:30 PM</div></div>
-    <div class="day"><h3>Sunday</h3><div class="event">Free day / Work 5 - 10:30 PM</div></div>
-...   </div>
-... 
-...   <script>
-...     async function loadProgrammes() {
-...       const dropdown = document.getElementById('programme');
-...       try {
-...         const response = await fetch("https://timetables.tudublin.ie/programmes", {
-...           mode: 'cors'
-...         });
-...         if (!response.ok) throw new Error("Network error");
-...         const html = await response.text();
-...         
-...         // Create a temporary DOM parser to extract the <option> tags
-...         const parser = new DOMParser();
-...         const doc = parser.parseFromString(html, "text/html");
-...         const options = doc.querySelectorAll("select#programme option");
-
-        dropdown.innerHTML = ""; // clear "Loading..."
-        options.forEach(opt => {
-          const newOpt = document.createElement("option");
-          newOpt.value = opt.value;
-          newOpt.textContent = opt.textContent;
-          dropdown.appendChild(newOpt);
-        });
-
-      } catch (err) {
-        dropdown.innerHTML = "<option>Failed to load programmes</option>";
-        console.error(err);
-      }
-    }
-
-    loadProgrammes();
-  </script>
-
+    function updateIframe() {
+      const programme = document.getElementById('programme').value;
+      const selection = programmeMap[programme] || programmeMap['Tu877'];
+      const date = document.getElementById('date').value;
+      const view = document.getElementById('view').value;
+      if (!date) return; // Wait until date is picked
+      const src = `https://timetables.tudublin.ie/timetables?date=${date}&view=${view}&timetableTypeSelected=241e4d36-93f2-4938-9e15-d4536fe3b2eb&searchText=${programme}&selections=${selection}`;
+      document.getElementById('timetableFrame').src = src;
+    }
+    document.getElementById('programme').addEventListener('change', updateIframe);
+    document.getElementById('date').addEventListener('change', updateIframe);
+    document.getElementById('view').addEventListener('change', updateIframe);
+    // Initial load
+    updateIframe();
+  </script>
 </body>
+</html>
